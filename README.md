@@ -1,59 +1,86 @@
 # NovaCPP Protection
 
-Max-hardening C/C++ source protection toolkit with one binary:
-- `protect`: obfuscation + mutation + string encryption (MAX profile ready)
-- `pack`: password-encrypted package (`.nvp`)
-- `unpack`: restore package
+![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
+![Build](https://img.shields.io/badge/Build-CMake-064F8C?logo=cmake&logoColor=white)
+![Profile](https://img.shields.io/badge/Security-MAX-critical)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-2EA043)
+![CLI](https://img.shields.io/badge/CLI-Easy%20Workflow-8A2BE2)
 
-## Build (CMake)
+Maximum-hardening C/C++ source protection toolkit with one simple CLI:
+
+- `protect` -> deep obfuscation, mutation, encryption-oriented source transformation
+- `pack` -> password-encrypted package (`.nvp`)
+- `unpack` -> integrity-checked restore
+
+## Why NovaCPP
+
+- Aggressive source hardening in a single command
+- Practical workflow for real projects (file or whole directory)
+- Built with CMake, easy to integrate into build pipelines
+- Security-first packaging for protected deliverables
+
+## Features
+
+- String literal encryption with runtime decoder
+- Integer literal masking/obfuscation
+- Control-flow mutation (anti-analysis junk blocks)
+- Local identifier renaming
+- Automatic runtime injection for protected code paths
+- Password-encrypted archive format with integrity check (`.nvp`)
+
+## Quick Start
+
+### 1) Build
 
 ```bash
 cmake -S . -B build
 cmake --build build --config Release
 ```
 
-Binary:
-- Windows MSVC: `build/Release/novacpp.exe`
-- MinGW/clang: `build/novacpp`
-
-## Quick Start
-
-Protect a single file (MAX):
+### 2) Protect source (MAX profile)
 
 ```bash
-novacpp protect --in samples/demo.cpp --out out/demo.protected.cpp --max
+./build/Release/novacpp.exe protect --in samples/demo.cpp --out out/demo.protected.cpp --max
 ```
 
-Protect entire project:
+### 3) Pack protected output
 
 ```bash
-novacpp protect --in path/to/cpp_project --out path/to/protected_project --max
+./build/Release/novacpp.exe pack --in out --out out/demo_protected.nvp --password "StrongPass2026!"
 ```
 
-Pack protected output:
+### 4) Unpack
 
 ```bash
-novacpp pack --in path/to/protected_project --out protected.nvp --password "StrongPass#2026"
+./build/Release/novacpp.exe unpack --in out/demo_protected.nvp --out restored --password "StrongPass2026!"
 ```
 
-Unpack:
+## CLI
 
 ```bash
-novacpp unpack --in protected.nvp --out restored_project --password "StrongPass#2026"
+novacpp protect --in <file|dir> --out <file|dir> [--seed N] [--mutation-level N] [--no-int-obf] [--no-rename] [--max]
+novacpp pack    --in <file|dir> --out <file.nvp> --password <pwd>
+novacpp unpack  --in <file.nvp> --out <dir> --password <pwd>
 ```
 
-## Options
+## Project Layout
 
-`protect`:
-- `--seed <N>`
-- `--mutation-level <N>`
-- `--no-int-obf`
-- `--no-rename`
-- `--max` (recommended, strongest preset)
+```text
+NovaCPP protection/
+  include/novacpp/
+    common.hpp
+    transformer.hpp
+    packer.hpp
+  src/
+    main.cpp
+    transformer.cpp
+    packer.cpp
+  samples/
+    demo.cpp
+  CMakeLists.txt
+```
 
-`pack` / `unpack`:
-- `--password <pwd>`
+## Security Note
 
-## Notes
-
-This is a strong practical hardening layer, but no software protection is mathematically unbreakable.
+No software protection is mathematically unbreakable.  
+NovaCPP is designed to significantly increase reverse-engineering and tampering cost with layered practical defenses.
