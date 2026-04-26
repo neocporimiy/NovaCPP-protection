@@ -1,0 +1,10 @@
+^C:\USERS\NEOCP\ONEDRIVE\DESKTOP\WAVE\NOVACPP PROTECTION\BUILD\CMAKEFILES\627F6E5C17C7CF02EBF8A08BDF3D12E8\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/neocp/OneDrive/Desktop/wave/NovaCPP protection" "-BC:/Users/neocp/OneDrive/Desktop/wave/NovaCPP protection/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/neocp/OneDrive/Desktop/wave/NovaCPP protection/build/NovaCPP.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
