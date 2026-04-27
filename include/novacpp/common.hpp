@@ -34,14 +34,16 @@ inline std::vector<std::uint8_t> readBytes(const fs::path& p) {
 }
 
 inline void writeText(const fs::path& p, const std::string& s) {
-    fs::create_directories(p.parent_path());
+    const auto parent = p.parent_path();
+    if (!parent.empty()) fs::create_directories(parent);
     std::ofstream out(p, std::ios::binary);
     if (!out) throw std::runtime_error("Cannot write file: " + p.string());
     out << s;
 }
 
 inline void writeBytes(const fs::path& p, const std::vector<std::uint8_t>& data) {
-    fs::create_directories(p.parent_path());
+    const auto parent = p.parent_path();
+    if (!parent.empty()) fs::create_directories(parent);
     std::ofstream out(p, std::ios::binary);
     if (!out) throw std::runtime_error("Cannot write file: " + p.string());
     if (!data.empty()) out.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));

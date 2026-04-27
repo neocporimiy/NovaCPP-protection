@@ -12,6 +12,7 @@ Maximum-hardening C/C++ source protection toolkit with one simple CLI:
 - `pack` -> password-encrypted package (`.nvp`)
 - `unpack` -> integrity-checked restore
 - `pe-scrub` -> section-name scrubbing for PE binaries (`.exe/.dll`)
+- `armor` -> one-command `protect + pack` pipeline for easiest workflow
 
 ## Why NovaCPP
 
@@ -27,7 +28,8 @@ Maximum-hardening C/C++ source protection toolkit with one simple CLI:
 - Control-flow mutation (anti-analysis junk blocks)
 - Local identifier renaming
 - Automatic runtime injection for protected code paths
-- Password-encrypted archive format with integrity check (`.nvp`)
+- Hardened archive format (`NVPKG02`) with stronger password derivation and integrity check (`.nvp`)
+- Safe unpack path validation (blocks `../` traversal and absolute-path extraction)
 - PE section-name scrubbing (randomized or zeroed section names)
 
 ## Quick Start
@@ -54,7 +56,13 @@ Ultra mode:
 ### 3) Pack protected output
 
 ```bash
-./build/Release/novacpp.exe pack --in out --out out/demo_protected.nvp --password "StrongPass2026!"
+./build/Release/novacpp.exe pack --in out --out out/demo_protected.nvp --password "StrongPass2026!" --kdf-rounds 220000
+```
+
+### 3.5) One-command hardening (recommended)
+
+```bash
+./build/Release/novacpp.exe armor --in samples/demo.cpp --out out/demo_protected.nvp --password "StrongPass2026!" --ultra
 ```
 
 ### 4) Unpack
@@ -81,9 +89,10 @@ Zero section names:
 
 ```bash
 novacpp protect --in <file|dir> --out <file|dir> [--seed N] [--mutation-level N] [--no-int-obf] [--no-rename] [--max] [--ultra]
-novacpp pack    --in <file|dir> --out <file.nvp> --password <pwd>
+novacpp pack    --in <file|dir> --out <file.nvp> --password <pwd> [--kdf-rounds N]
 novacpp unpack  --in <file.nvp> --out <dir> --password <pwd>
 novacpp pe-scrub --in <file.exe|file.dll> [--out <file>] [--seed N] [--zero-names]
+novacpp armor   --in <file|dir> --out <file.nvp> --password <pwd> [--tmp <dir>] [--kdf-rounds N] [protect options]
 ```
 
 ## Project Layout
