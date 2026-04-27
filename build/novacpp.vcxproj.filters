@@ -10,6 +10,9 @@
     <ClCompile Include="C:\Users\neocp\OneDrive\Desktop\wave\NovaCPP protection\src\packer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\neocp\OneDrive\Desktop\wave\NovaCPP protection\src\pe_hardener.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\Users\neocp\OneDrive\Desktop\wave\NovaCPP protection\CMakeLists.txt" />

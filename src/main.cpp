@@ -1,4 +1,5 @@
 #include "novacpp/packer.hpp"
+#include "novacpp/pe_hardener.hpp"
 #include "novacpp/transformer.hpp"
 
 #include <iostream>
@@ -11,9 +12,10 @@ void printHelp() {
     std::cout
         << "NovaCPP usage:\n"
         << "  novacpp protect --in <file|dir> --out <file|dir> [--seed N] [--mutation-level N]\n"
-        << "                  [--no-int-obf] [--no-rename] [--max]\n"
+        << "                  [--no-int-obf] [--no-rename] [--max] [--ultra]\n"
         << "  novacpp pack    --in <file|dir> --out <file.nvp> --password <pwd>\n"
-        << "  novacpp unpack  --in <file.nvp> --out <dir> --password <pwd>\n";
+        << "  novacpp unpack  --in <file.nvp> --out <dir> --password <pwd>\n"
+        << "  novacpp pe-scrub --in <file.exe|file.dll> [--out <file>] [--seed N] [--zero-names]\n";
 }
 
 std::string needValue(int& i, int argc, char** argv, const char* name) {
@@ -25,6 +27,7 @@ int cmdProtect(int argc, char** argv) {
     novacpp::ProtectConfig cfg{};
     bool hasIn = false, hasOut = false;
     bool forceMax = false;
+    bool ultra = false;
     for (int i = 2; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--in") {
@@ -43,6 +46,8 @@ int cmdProtect(int argc, char** argv) {
             cfg.enableRename = false;
         } else if (a == "--max") {
             forceMax = true;
+        } else if (a == "--ultra") {
+            ultra = true;
         } else if (a == "--help" || a == "-h") {
             printHelp();
             return 0;
@@ -53,6 +58,12 @@ int cmdProtect(int argc, char** argv) {
     if (!hasIn || !hasOut) throw std::runtime_error("protect requires --in and --out");
     if (forceMax) {
         cfg.mutationLevel = 8;
+        cfg.enableIntObf = true;
+        cfg.enableRename = true;
+    }
+    if (ultra) {
+        cfg.ultraMode = true;
+        cfg.mutationLevel = std::max(cfg.mutationLevel, 14);
         cfg.enableIntObf = true;
         cfg.enableRename = true;
     }
@@ -120,6 +131,36 @@ int cmdUnpack(int argc, char** argv) {
     return 0;
 }
 
+int cmdPeScrub(int argc, char** argv) {
+    novacpp::PeSectionScrubConfig cfg{};
+    bool hasIn = false;
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--in") {
+            cfg.inputFile = needValue(i, argc, argv, "--in");
+            hasIn = true;
+        } else if (a == "--out") {
+            cfg.outputFile = needValue(i, argc, argv, "--out");
+        } else if (a == "--seed") {
+            cfg.seed = std::stoull(needValue(i, argc, argv, "--seed"));
+        } else if (a == "--zero-names") {
+            cfg.zeroNames = true;
+        } else if (a == "--help" || a == "-h") {
+            printHelp();
+            return 0;
+        } else {
+            throw std::runtime_error("Unknown option: " + a);
+        }
+    }
+    if (!hasIn) throw std::runtime_error("pe-scrub requires --in");
+    if (cfg.outputFile.empty()) cfg.outputFile = cfg.inputFile;
+    const auto stats = novacpp::scrubPeSectionNames(cfg);
+    std::cout << "[OK] PE section names scrubbed: " << stats.sections
+              << (cfg.zeroNames ? " (zeroed)" : " (randomized)") << "\n";
+    std::cout << "[OUT] " << cfg.outputFile << "\n";
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -132,6 +173,7 @@ int main(int argc, char** argv) {
         if (cmd == "protect") return cmdProtect(argc, argv);
         if (cmd == "pack") return cmdPack(argc, argv);
         if (cmd == "unpack") return cmdUnpack(argc, argv);
+        if (cmd == "pe-scrub") return cmdPeScrub(argc, argv);
         if (cmd == "--help" || cmd == "-h" || cmd == "help") {
             printHelp();
             return 0;

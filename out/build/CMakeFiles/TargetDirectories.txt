@@ -1,0 +1,3 @@
+C:/Users/neocp/OneDrive/Desktop/wave/NovaCPP protection/out/build/CMakeFiles/demo_protected.dir
+C:/Users/neocp/OneDrive/Desktop/wave/NovaCPP protection/out/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/neocp/OneDrive/Desktop/wave/NovaCPP protection/out/build/CMakeFiles/ZERO_CHECK.dir

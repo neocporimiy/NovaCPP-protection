@@ -14,6 +14,10 @@ constexpr std::string_view kRuntime = R"(// ===== NovaCPP Runtime (auto) =====
 #include <cstdint>
 #include <cstddef>
 #include <cstdlib>
+#include <chrono>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 namespace novacpp_rt {
 inline std::string dec(const unsigned char* data, std::size_t n, unsigned char key) {
     if (n == 0) return std::string();
@@ -30,9 +34,62 @@ inline std::uint64_t mix(std::uint64_t x) {
     x ^= x >> 31;
     return x;
 }
+inline bool anti_debug() {
+#ifdef _WIN32
+    if (IsDebuggerPresent()) return true;
+    BOOL remote = FALSE;
+    CheckRemoteDebuggerPresent(GetCurrentProcess(), &remote);
+    if (remote) return true;
+#endif
+    return false;
+}
+inline bool timing_probe() {
+    auto t1 = std::chrono::high_resolution_clock::now();
+    volatile std::uint64_t x = 0;
+    for (int i = 0; i < 8000; ++i) x ^= mix(static_cast<std::uint64_t>(i) + x);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto us = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    return us > 200000; // very slow single-step / heavy instrumentation
+}
+inline void shield_entry() {
+    if (anti_debug() || timing_probe()) std::abort();
+}
 }
 // ===== /NovaCPP Runtime =====
 )";
+
+std::string generateUltraDecoyMesh(std::mt19937_64& rng, int blocks) {
+    std::ostringstream ss;
+    ss << "\n// ===== NovaCPP ULTRA decoy mesh =====\n";
+    ss << "namespace novacpp_ultra_decoy {\n";
+    ss << "static inline std::uint64_t rotl(std::uint64_t x, int r) { return (x << r) | (x >> (64 - r)); }\n";
+    ss << "static inline std::uint64_t mix2(std::uint64_t x) {\n";
+    ss << "    x ^= x >> 29; x *= 0x9FB21C651E98DF25ULL; x ^= x >> 32; x *= 0xD6E8FEB86659FD93ULL; x ^= x >> 31;\n";
+    ss << "    return x;\n";
+    ss << "}\n";
+    for (int i = 0; i < blocks; ++i) {
+        const auto a = rng();
+        const auto b = rng();
+        ss << "static std::uint64_t n" << i << "(std::uint64_t x){\n";
+        ss << "    x ^= 0x" << std::hex << std::uppercase << a << "ULL;\n" << std::dec;
+        ss << "    x = rotl(x, " << ((i % 61) + 1) << ");\n";
+        ss << "    x += 0x" << std::hex << std::uppercase << b << "ULL;\n" << std::dec;
+        ss << "    if ((x & 0xFFFFULL) == 0x1234ULL) x ^= mix2(x);\n";
+        ss << "    return mix2(x);\n";
+        ss << "}\n";
+    }
+    ss << "static std::uint64_t entry(std::uint64_t v){\n";
+    ss << "    std::uint64_t x=v;\n";
+    for (int i = 0; i < blocks; ++i) {
+        ss << "    x = n" << i << "(x);\n";
+    }
+    ss << "    return x;\n";
+    ss << "}\n";
+    ss << "}\n";
+    ss << "static volatile std::uint64_t __nv_ultra_sink = novacpp_ultra_decoy::entry(0xA5A5A5A55A5A5A5AULL);\n";
+    ss << "// ===== /NovaCPP ULTRA decoy mesh =====\n";
+    return ss.str();
+}
 
 std::string insertRuntime(const std::string& code) {
     if (code.find("namespace novacpp_rt") != std::string::npos) return code;
@@ -167,12 +224,14 @@ std::string mutateFunctions(const std::string& code, std::mt19937_64& rng, int l
     std::sort(inserts.begin(), inserts.end(), std::greater<std::size_t>());
     for (auto pos : inserts) {
         std::ostringstream blk;
+        blk << "\n    novacpp_rt::shield_entry();\n";
         for (int i = 0; i < level; ++i) {
             const auto seed = rng();
             blk << "\n    volatile std::uint64_t __nv_state_" << i
                 << " = novacpp_rt::mix(0x" << std::hex << std::uppercase << seed << std::dec
                 << "ULL ^ (std::uint64_t)__LINE__);\n"
                 << "    if (((__nv_state_" << i << " & 7ULL) == 9ULL)) { std::abort(); }\n";
+            blk << "    if (((__nv_state_" << i << " ^ 0xA5A5A5A5ULL) == 0x11223344ULL)) { std::abort(); }\n";
             st.mutations++;
         }
         out.insert(pos + 1, blk.str());
@@ -185,7 +244,14 @@ std::string renameLocals(const std::string& code, std::mt19937_64& rng, ProtectS
         R"(\b(int|long|short|float|double|char|bool|std::string|std::uint64_t|std::int64_t)\s+([A-Za-z_][A-Za-z0-9_]*))");
     std::unordered_set<std::string> names;
     for (auto it = std::sregex_iterator(code.begin(), code.end(), declRe); it != std::sregex_iterator(); ++it) {
-        names.insert((*it).str(2));
+        const auto m = *it;
+        const auto name = m.str(2);
+        std::size_t after = static_cast<std::size_t>(m.position(2) + m.length(2));
+        while (after < code.size() && std::isspace(static_cast<unsigned char>(code[after]))) ++after;
+        // Skip function names (e.g. `int main(`) to keep entrypoints/signatures valid.
+        if (after < code.size() && code[after] == '(') continue;
+        if (name == "main") continue;
+        names.insert(name);
     }
     std::vector<std::string> sorted(names.begin(), names.end());
     std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.size() > b.size(); });
@@ -206,8 +272,15 @@ std::string renameLocals(const std::string& code, std::mt19937_64& rng, ProtectS
 std::string protectSource(const std::string& input, std::mt19937_64& rng, const ProtectConfig& cfg, ProtectStats& stats) {
     auto out = obfuscateStrings(input, rng, stats);
     if (cfg.enableIntObf) out = obfuscateInts(out, rng, stats);
-    out = mutateFunctions(out, rng, cfg.mutationLevel, stats);
+    const int level = cfg.ultraMode ? std::max(cfg.mutationLevel, 14) : cfg.mutationLevel;
+    out = mutateFunctions(out, rng, level, stats);
     if (cfg.enableRename) out = renameLocals(out, rng, stats);
+    if (cfg.ultraMode) {
+        // Extra pass in ultra mode to increase pattern diversity.
+        out = obfuscateInts(out, rng, stats);
+        out += generateUltraDecoyMesh(rng, 220);
+        stats.mutations += 220;
+    }
     if (stats.strings || stats.mutations) out = insertRuntime(out);
     return out;
 }

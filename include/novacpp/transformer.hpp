@@ -14,6 +14,7 @@ struct ProtectConfig {
     int mutationLevel = 6;
     bool enableIntObf = true;
     bool enableRename = true;
+    bool ultraMode = false;
 };
 
 struct ProtectStats {
