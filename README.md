@@ -31,6 +31,7 @@ Maximum-hardening C/C++ source protection toolkit with one simple CLI:
 - Hardened archive format (`NVPKG02`) with stronger password derivation and integrity check (`.nvp`)
 - Safe unpack path validation (blocks `../` traversal and absolute-path extraction)
 - PE section-name scrubbing (randomized or zeroed section names)
+- Hardened executable build profile (CFG/ASLR/DEP/CET + stack protections)
 
 ## Quick Start
 
@@ -40,6 +41,11 @@ Maximum-hardening C/C++ source protection toolkit with one simple CLI:
 cmake -S . -B build
 cmake --build build --config Release
 ```
+
+Release build now enables stronger executable hardening flags by default:
+
+- Windows (MSVC): `/guard:cf`, `/DYNAMICBASE`, `/HIGHENTROPYVA`, `/NXCOMPAT`, `/CETCOMPAT`, `/GS`, `/sdl`
+- Linux/macOS (clang/gcc): `-fstack-protector-strong`, `-Wl,-z,relro`, `-Wl,-z,now`, `-Wl,-z,noexecstack`
 
 ### 2) Protect source (MAX / ULTRA profile)
 
