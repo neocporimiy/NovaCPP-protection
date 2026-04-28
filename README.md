@@ -2,7 +2,7 @@
 
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-CMake-064F8C?logo=cmake&logoColor=white)
-![Profile](https://img.shields.io/badge/Security-MAX-critical)
+![Profile](https://img.shields.io/badge/Security-8/10-critical)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-2EA043)
 ![CLI](https://img.shields.io/badge/CLI-Easy%20Workflow-8A2BE2)
 
